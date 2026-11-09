@@ -1,0 +1,77 @@
+/* VARIABLES.CSS — CSS variables and themes */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg-page: #eef5fc;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #f5f9fe;
+  --bg-surface-3: #e6f0fa;
+  --bg-sidebar: #ffffff;
+  --bg-header: #4285B4;
+  --bg-footer: linear-gradient(135deg, #002F55 0%, #3E5F8A 100%);
+  --bg-input: #f8fbff;
+
+  --text-strong: #0b1721;
+  --text-primary: #1a2c3e;
+  --text-secondary: #3a4a5a;
+  --text-muted: #5b6b7b;
+  --text-on-dark: #eef5fc;
+
+  --primary: #4285B4;
+  --primary-dark: #002F55;
+  --primary-mid: #3E5F8A;
+  --primary-cornflower: #6495ED;
+  --primary-pale: #9ACEEB;
+  --primary-soft: #ABCDEF;
+  --teal: #0095B6;
+  --red: #D0021B;
+  --red-hover: #b01a2f;
+
+  --border: #cfe0f0;
+  --border-soft: #e2ecf6;
+  --shadow-sm: 0 2px 8px rgba(0, 47, 85, 0.06);
+  --shadow-md: 0 6px 18px rgba(0, 47, 85, 0.08);
+  --shadow-lg: 0 12px 32px rgba(0, 47, 85, 0.12);
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  --t-fast: 0.15s ease;
+  --t: 0.25s ease;
+  --t-slow: 0.35s ease;
+}
+
+[data-theme="dark"] {
+  --bg-page: #0a1a2e;
+  --bg-surface: #142740;
+  --bg-surface-2: #1a3350;
+  --bg-surface-3: #1f3d5f;
+  --bg-sidebar: #0f2138;
+  --bg-header: #1a3350;
+  --bg-footer: linear-gradient(135deg, #04121f 0%, #0f2138 100%);
+  --bg-input: #0e1e33;
+
+  --text-strong: #f0f6fc;
+  --text-primary: #d8e5f0;
+  --text-secondary: #b8c8d8;
+  --text-muted: #7a8fa8;
+  --text-on-dark: #eef5fc;
+
+  --primary: #6495ED;
+  --primary-dark: #9ACEEB;
+  --primary-mid: #4285B4;
+  --primary-cornflower: #ABCDEF;
+  --primary-pale: #9ACEEB;
+  --primary-soft: #3E5F8A;
+  --teal: #3EC8E0;
+  --red: #ff4d63;
+  --red-hover: #e63348;
+
+  --border: #1e3a5f;
+  --border-soft: #223d5f;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
