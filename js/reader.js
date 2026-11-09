@@ -1,64 +1,76 @@
 (function () {
-  var KEY_HL   = 'bc_reader_highlights';
-  var KEY_BM   = 'bc_reader_bookmarks';
-  var KEY_LAST = 'bc_reader_last_book';
-  var KEY_SHELF = 'bc_shelf';
-
-  var $ = function (id) { return document.getElementById(id); };
-  var getHL = function () { return JSON.parse(localStorage.getItem(KEY_HL) || '[]'); };
-  var setHL = function (a) { localStorage.setItem(KEY_HL, JSON.stringify(a)); };
-  var getBM = function () { return JSON.parse(localStorage.getItem(KEY_BM) || '[]'); };
-  var setBM = function (a) { localStorage.setItem(KEY_BM, JSON.stringify(a)); };
-  var getShelf = function () { return JSON.parse(localStorage.getItem(KEY_SHELF) || '[]'); };
+  const $ = (id) => document.getElementById(id);
 
   function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g,
-      function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; });
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
-  var BOOKS = {
-    pride: {
-      title: 'Pride and Prejudice',
-      author: 'Jane Austen',
-      cover: 'imgs/pride.jpg',
-      paragraphs: [
-        'It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.',
-        'However little known the feelings or views of such a man may be on his first entering a neighbourhood...'
-      ]
-    },
-    gatsby: {
-      title: 'The Great Gatsby',
-      author: 'F. Scott Fitzgerald',
-      cover: 'imgs/gatsby.jpg',
-      paragraphs: [
-        'In my younger and more vulnerable years my father gave me some advice that I\'ve been turning over in my mind ever since.',
-        'Whenever you feel like criticizing any one, he told me, just remember that all the people in this world haven\'t had the advantages that you\'ve had.'
-      ]
-    }
-  };
+  const params = new URLSearchParams(window.location.search);
+  const urlId = params.get('id');
+  let currentBook = urlId || localStorage.getItem('bc_reader_last_book') || 'Pride and Prejudice';
+  localStorage.setItem('bc_reader_last_book', currentBook);
 
-  var params = new URLSearchParams(window.location.search);
-  var urlId = params.get('id');
-  var currentBook;
+  async function fetchBookFromAPI(title) {
+    const container = $('book-reader');
+    const titleDisplay = $('book-title-display');
+    
+    titleDisplay.textContent = title + " — Loading...";
+    container.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div><p class="mt-3">Fetching real book text from Gutenberg API...</p></div>';
 
-  if (urlId) {
-    if (BOOKS[urlId]) {
-      currentBook = urlId;
-      localStorage.setItem(KEY_LAST, currentBook);
-    } else {
-      currentBook = null;
+    try {
+      const searchRes = await fetch(`https://gutendex.com/books?search=${encodeURIComponent(title)}`);
+      const searchData = await searchRes.json();
+
+      if (!searchData.results || searchData.results.length === 0) {
+        throw new Error("Book not found.");
+      }
+
+      const book = searchData.results[0];
+      titleDisplay.textContent = book.title + " — " + (book.authors[0] ? book.authors[0].name : 'Unknown');
+
+      let textUrl = book.formats['text/plain; charset=utf-8'] || book.formats['text/plain; charset=us-ascii'] || book.formats['text/plain'];
+      if (!textUrl) throw new Error("No readable text available.");
+
+      // CORS Proxy
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(textUrl)}`;
+      const textRes = await fetch(proxyUrl);
+      let fullText = await textRes.text();
+
+      const startIdx = fullText.indexOf('*** START OF THE PROJECT GUTENBERG EBOOK');
+      if (startIdx !== -1) fullText = fullText.substring(startIdx + 40);
+      
+      // Take first 15 paragraphs
+      let paragraphs = fullText.split('\n\n').filter(p => p.trim().length > 50).slice(0, 15);
+
+      let html = `
+        <header class="reader-header pb-3 mb-4">
+          <img src="${book.formats['image/jpeg'] || 'imgs/logo.png'}" alt="Cover" style="height:150px; object-fit:cover; border-radius: 8px;">
+          <div>
+            <h1 class="mb-1">${escapeHtml(book.title)}</h1>
+            <p class="mb-0">${escapeHtml(book.authors[0] ? book.authors[0].name : '')} · Public Domain</p>
+          </div>
+        </header>`;
+
+      paragraphs.forEach((p, i) => {
+        html += `<p class="reader-para p-2 mb-3" id="para-${i}">${escapeHtml(p.trim())}</p>`;
+      });
+
+      container.innerHTML = html;
+
+    } catch (err) {
+      container.innerHTML = `<div class="auth-error p-4"><strong>⚠ Error:</strong> ${err.message} <br> Try another book.</div>`;
+      titleDisplay.textContent = "Error";
     }
-  } else {
-    currentBook = localStorage.getItem(KEY_LAST) || 'pride';
-    if (!BOOKS[currentBook]) currentBook = 'pride';
-    localStorage.setItem(KEY_LAST, currentBook);
   }
 
-  function renderBook() {
-    var container = $('book-reader');
-    if (!container) return;
-    var book = BOOKS[currentBook];
-    var titleDisplay = $('book-title-display');
-    if (titleDisplay) {
-      titleDisplay.textContent = book.title + ' — ' + book.author;
-   
+  document.addEventListener('DOMContentLoaded', () => {
+    const bookSel = $('book-select');
+    if (bookSel) {
+      if (currentBook) bookSel.value = currentBook;
+      bookSel.addEventListener('change', (e) => {
+        if (e.target.value) window.location.href = 'reader.html?id=' + encodeURIComponent(e.target.value);
+      });
+    }
+    if (currentBook) fetchBookFromAPI(currentBook);
+  });
+})();

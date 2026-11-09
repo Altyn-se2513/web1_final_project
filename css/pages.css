@@ -442,3 +442,18 @@ mark.hl-orange { background: #ee9331; color: #0b1721; }
   .reader-toolbar { top: auto; position: static; }
   .reader-header { flex-direction: column; text-align: center; }
 }
+
+/* Новый профиль */
+.profile-header {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.profile-header:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+#user-avatar {
+  transition: transform 0.3s ease;
+}
+#user-avatar:hover {
+  transform: scale(1.05);
+}
