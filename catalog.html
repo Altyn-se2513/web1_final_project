@@ -58,11 +58,10 @@
         <p class="breadcrumb mb-2"><a href="index.html">Home</a> / <span>Catalog</span></p>
 
         <h1 class="mt-2 mt-lg-4">Book Catalog</h1>
-        <p>Explore our entire library. Browse through genres, authors, and reader favorites.</p>
+        <p>Explore all 16 titles in our library. Filter by genre or search by title / author.</p>
 
         <div class="position-relative my-3 search-wrap">
           <input type="text" id="catalog-search" class="form-control" placeholder="Search by title or author..." autocomplete="off">
-          <ul id="search-suggestions" class="list-group position-absolute w-100" style="display:none"></ul>
         </div>
 
         <div class="filter-bar my-4">
@@ -74,10 +73,10 @@
           <button class="btn btn-outline-primary filter-btn" data-filter="history">History</button>
         </div>
 
-        <h2 id="classics" class="mt-4 mt-lg-5">Classic Literature &amp; Fiction</h2>
+        <h2 id="classics" class="mt-4 mt-lg-5">Classic Literature</h2>
         <div class="row g-4 mb-4">
-          <div class="col-12 col-sm-6 col-md-6 col-lg-3">
-            <div class="card h-100">
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="The Great Gatsby" data-author="F. Scott Fitzgerald" data-genre="classics">
               <img src="imgs/gatsby.jpg" alt="The Great Gatsby" class="card-img-top">
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title">The Great Gatsby</h5>
@@ -86,8 +85,8 @@
               </div>
             </div>
           </div>
-          <div class="col-12 col-sm-6 col-md-6 col-lg-3">
-            <div class="card h-100">
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="To Kill a Mockingbird" data-author="Harper Lee" data-genre="classics">
               <img src="imgs/mockingbird.jpg" alt="To Kill a Mockingbird" class="card-img-top">
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title">To Kill a Mockingbird</h5>
@@ -96,12 +95,22 @@
               </div>
             </div>
           </div>
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="The Catcher in the Rye" data-author="J.D. Salinger" data-genre="classics">
+              <img src="imgs/catcher.jpg" alt="The Catcher in the Rye" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">The Catcher in the Rye</h5>
+                <p class="card-text flex-grow-1">J.D. Salinger · 1951</p>
+                <a href="book-details.html#catcher" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
         </div>
 
         <h2 id="scifi" class="mt-4 mt-lg-5">Science Fiction &amp; Dystopia</h2>
         <div class="row g-4 mb-4">
-          <div class="col-12 col-sm-6 col-md-6 col-lg-4">
-            <div class="card h-100">
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="1984" data-author="George Orwell" data-genre="scifi">
               <img src="imgs/1984.jpg" alt="1984" class="card-img-top">
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title">1984</h5>
@@ -110,7 +119,141 @@
               </div>
             </div>
           </div>
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="Fahrenheit 451" data-author="Ray Bradbury" data-genre="scifi">
+              <img src="imgs/f451.jpg" alt="Fahrenheit 451" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">Fahrenheit 451</h5>
+                <p class="card-text flex-grow-1">Ray Bradbury · 1953</p>
+                <a href="book-details.html#f451" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="Brave New World" data-author="Aldous Huxley" data-genre="scifi">
+              <img src="imgs/bravenew.jpg" alt="Brave New World" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">Brave New World</h5>
+                <p class="card-text flex-grow-1">Aldous Huxley · 1932</p>
+                <a href="book-details.html#bravenew" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <h2 id="fantasy" class="mt-4 mt-lg-5">Fantasy</h2>
+        <div class="row g-4 mb-4">
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="The Hobbit" data-author="J.R.R. Tolkien" data-genre="fantasy">
+              <img src="imgs/hobbit.jpg" alt="The Hobbit" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">The Hobbit</h5>
+                <p class="card-text flex-grow-1">J.R.R. Tolkien · 1937</p>
+                <a href="book-details.html#hobbit" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="The Lord of the Rings" data-author="J.R.R. Tolkien" data-genre="fantasy">
+              <img src="imgs/lotr.jpg" alt="The Lord of the Rings" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">The Lord of the Rings</h5>
+                <p class="card-text flex-grow-1">J.R.R. Tolkien · 1954</p>
+                <a href="book-details.html#lotr" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="Harry Potter &amp; the Philosopher's Stone" data-author="J.K. Rowling" data-genre="fantasy">
+              <img src="imgs/harry.jpg" alt="Harry Potter" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">Harry Potter &amp; the Philosopher's Stone</h5>
+                <p class="card-text flex-grow-1">J.K. Rowling · 1997</p>
+                <a href="book-details.html#harry" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="romance" class="mt-4 mt-lg-5">Romance</h2>
+        <div class="row g-4 mb-4">
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="Pride and Prejudice" data-author="Jane Austen" data-genre="romance">
+              <img src="imgs/pride.jpg" alt="Pride and Prejudice" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">Pride and Prejudice</h5>
+                <p class="card-text flex-grow-1">Jane Austen · 1813</p>
+                <a href="book-details.html#pride" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="Jane Eyre" data-author="Charlotte Brontë" data-genre="romance">
+              <img src="imgs/janeeyre.jpg" alt="Jane Eyre" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">Jane Eyre</h5>
+                <p class="card-text flex-grow-1">Charlotte Brontë · 1847</p>
+                <a href="book-details.html#janeeyre" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="The Alchemist" data-author="Paulo Coelho" data-genre="romance">
+              <img src="imgs/alchemist.jpg" alt="The Alchemist" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">The Alchemist</h5>
+                <p class="card-text flex-grow-1">Paulo Coelho · 1988</p>
+                <a href="book-details.html#alchemist" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="history" class="mt-4 mt-lg-5">History &amp; Adventure</h2>
+        <div class="row g-4 mb-4">
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="War and Peace" data-author="Leo Tolstoy" data-genre="history">
+              <img src="imgs/warpeace.jpg" alt="War and Peace" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">War and Peace</h5>
+                <p class="card-text flex-grow-1">Leo Tolstoy · 1869</p>
+                <a href="book-details.html#warpeace" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="Crime and Punishment" data-author="Fyodor Dostoevsky" data-genre="history">
+              <img src="imgs/crime.jpg" alt="Crime and Punishment" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">Crime and Punishment</h5>
+                <p class="card-text flex-grow-1">Fyodor Dostoevsky · 1866</p>
+                <a href="book-details.html#crime" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="Moby-Dick" data-author="Herman Melville" data-genre="history">
+              <img src="imgs/moby.jpg" alt="Moby-Dick" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">Moby-Dick</h5>
+                <p class="card-text flex-grow-1">Herman Melville · 1851</p>
+                <a href="book-details.html#moby" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-6 col-lg-3" data-card-wrapper>
+            <div class="card h-100 catalog-card" data-title="The Old Man and the Sea" data-author="Ernest Hemingway" data-genre="history">
+              <img src="imgs/oldman.jpg" alt="The Old Man and the Sea" class="card-img-top">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">The Old Man and the Sea</h5>
+                <p class="card-text flex-grow-1">Ernest Hemingway · 1952</p>
+                <a href="book-details.html#oldman" class="btn btn-primary align-self-start">View Details</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p id="catalog-empty" class="text-muted text-center my-4" hidden>No books match your search.</p>
       </div>
     </main>
 
