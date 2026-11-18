@@ -1,7 +1,10 @@
 'use strict';
 
 /* ============================================================
-   Digital Book Collection — main script (rewritten)
+   Digital Book Collection — main script
+   Sections: data · helpers · global actions · theme · menu
+   home · catalog · book details · account · profile · pricing
+   contact · reader · about · router
    ============================================================ */
 
 /* -------------------- DATA -------------------- */
@@ -381,7 +384,7 @@ function loadHomeApi() {
     .then(data => {
       const items = data.items || [];
       if (!items.length) {
-        if (status) { status.classList.remove('loading'); status.textContent = 'No recommendations right now.'; }
+        renderFallbackHome();
         return;
       }
       if (status) status.remove();
@@ -396,9 +399,23 @@ function loadHomeApi() {
         </article>`;
       }).join('');
     })
-    .catch(() => {
-      if (status) { status.classList.remove('loading'); status.textContent = 'Live recommendations are unavailable right now.'; }
-    });
+    .catch(renderFallbackHome);
+
+  function renderFallbackHome() {
+    if (status) {
+      status.classList.remove('loading');
+      status.textContent = 'Showing curated recommendations — live data unavailable right now.';
+    }
+    const picks = [BOOKS[4], BOOKS[5], BOOKS[6], BOOKS[7]];
+    results.innerHTML = picks.map(b => `
+      <article class="api-book">
+        <div class="api-cover-fallback">BOOK</div>
+        <div>
+          <h3>${esc(b.title)}</h3>
+          <p>${esc(b.author)}</p>
+        </div>
+      </article>`).join('');
+  }
 }
 
 /* -------------------- CATALOG -------------------- */
@@ -406,7 +423,6 @@ function initCatalog() {
   const grid = document.getElementById('catalog-grid');
   if (!grid) return;
 
-  /* inject sort control if not in HTML */
   const line = document.querySelector('.results-line');
   if (line && !document.getElementById('catalog-sort')) {
     const label = document.createElement('label');
@@ -586,10 +602,7 @@ function loadBookApi(book) {
     .then(data => {
       const items = data.items || [];
       box.classList.remove('loading');
-      if (!items.length) {
-        box.textContent = 'No external reviews available right now.';
-        return;
-      }
+      if (!items.length) { renderFallbackReviews(); return; }
       box.innerHTML = items.map(item => {
         const v = item.volumeInfo || {};
         const desc = v.description || 'No description available.';
@@ -603,10 +616,25 @@ function loadBookApi(book) {
         </article>`;
       }).join('');
     })
-    .catch(() => {
-      box.classList.remove('loading');
-      box.textContent = 'Reviews are unavailable offline.';
-    });
+    .catch(() => { box.classList.remove('loading'); renderFallbackReviews(); });
+
+  function renderFallbackReviews() {
+    box.innerHTML = `
+      <article class="api-book" style="margin-bottom:10px;">
+        <div>
+          <h3>About this book</h3>
+          <p>${esc(book.title)} · ${esc(book.author)}</p>
+          <p>${esc(book.desc)}</p>
+        </div>
+      </article>
+      <article class="api-book">
+        <div>
+          <h3>A line to remember</h3>
+          <p>“${esc(book.quote)}”</p>
+          <p class="muted" style="font-size:11px;">Live reviews unavailable — showing curated content.</p>
+        </div>
+      </article>`;
+  }
 }
 
 /* -------------------- ACCOUNT -------------------- */
@@ -816,17 +844,25 @@ function initProfile() {
 /* -------------------- PRICING -------------------- */
 function initPricing() {
   const btns = $$('.billing-btn');
-  if (!btns.length) return;
+  const faqButtons = $$('.faq-q');
 
-  const saved = localStorage.getItem('dbc-billing') || 'monthly';
-  btns.forEach(b => b.classList.toggle('active', b.dataset.period === saved));
-  applyBilling(saved);
+  if (btns.length) {
+    const saved = localStorage.getItem('dbc-billing') || 'monthly';
+    btns.forEach(b => b.classList.toggle('active', b.dataset.period === saved));
+    applyBilling(saved);
 
-  btns.forEach(btn => btn.addEventListener('click', () => {
-    btns.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    localStorage.setItem('dbc-billing', btn.dataset.period);
-    applyBilling(btn.dataset.period);
+    btns.forEach(btn => btn.addEventListener('click', () => {
+      btns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      localStorage.setItem('dbc-billing', btn.dataset.period);
+      applyBilling(btn.dataset.period);
+    }));
+  }
+
+  faqButtons.forEach(q => q.addEventListener('click', () => {
+    const item = q.parentElement;
+    const open = item.classList.toggle('open');
+    q.setAttribute('aria-expanded', open ? 'true' : 'false');
   }));
 
   function applyBilling(period) {
@@ -850,7 +886,6 @@ function initContactForm() {
   const form = document.getElementById('contact-form');
   if (!form) return;
 
-  /* inject accent picker */
   const card = form.closest('.form-card') || form;
   if (!document.getElementById('accent-color')) {
     const box = document.createElement('div');
@@ -908,7 +943,6 @@ function initReader() {
   let cache = {};
   let activeBook = null;
 
-  /* inject toolbar */
   if (!content.querySelector('.reader-controls')) {
     const controls = document.createElement('div');
     controls.className = 'reader-controls';
@@ -930,7 +964,6 @@ function initReader() {
     content.insertBefore(controls, textEl);
   }
 
-  /* search */
   form.addEventListener('submit', e => {
     e.preventDefault();
     const query = document.getElementById('reader-query').value.trim();
@@ -1018,7 +1051,6 @@ function initReader() {
     applyReaderPrefs();
   }
 
-  /* highlight colours */
   $$('.hl-btn').forEach(btn => btn.addEventListener('click', () => {
     $$('.hl-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -1026,7 +1058,6 @@ function initReader() {
   }));
   if (!textEl.dataset.color) textEl.dataset.color = 'yellow';
 
-  /* text selection → mark */
   document.addEventListener('mouseup', () => {
     if (!content || content.hidden) return;
     const sel = window.getSelection();
@@ -1059,7 +1090,6 @@ function initReader() {
     }
   });
 
-  /* bookmarks */
   textEl.addEventListener('click', e => {
     const btn = e.target.closest('[data-bookmark]');
     if (!btn || !activeBook) return;
@@ -1080,7 +1110,6 @@ function initReader() {
     try { localStorage.setItem('dbc-reader-html-' + activeBook.id, textEl.innerHTML); } catch (e) {}
   }
 
-  /* font & line-height */
   $$('[data-font]').forEach(btn => btn.addEventListener('click', () => {
     let size = parseInt(localStorage.getItem('dbc-reader-font') || '17', 10);
     size = Math.min(26, Math.max(13, size + Number(btn.dataset.font)));
