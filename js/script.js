@@ -184,42 +184,6 @@ function bookCard(book) {
   </article>`;
 }
 
-/* -------------------- NETWORK HELPERS (CORS) -------------------- */
-/* Gutendex и Project Gutenberg не отдают CORS-заголовки, поэтому
-   запросы идут через публичный прокси. Два провайдера — на случай,
-   если один временно недоступен. */
-
-const CORS_PROXIES = [
-  'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?'
-];
-
-async function fetchWithTimeout(url, ms = 15000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
-  try {
-    return await fetch(url, { signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/* Пытается скачать URL через первый прокси, при неудаче — через второй.
-   Возвращает Response (проверка .ok — на стороне вызывающего). */
-async function fetchWithProxy(url, ms = 15000) {
-  let lastError = null;
-  for (const proxy of CORS_PROXIES) {
-    try {
-      const res = await fetchWithTimeout(proxy + encodeURIComponent(url), ms);
-      if (res.ok) return res;
-      lastError = new Error('HTTP ' + res.status);
-    } catch (err) {
-      lastError = err;
-    }
-  }
-  throw lastError || new Error('Proxy failed');
-}
-
 /* -------------------- GLOBAL ACTIONS -------------------- */
 function initGlobalActions() {
   const savedAccent = localStorage.getItem('dbc-accent');
@@ -979,7 +943,6 @@ function initReader() {
   let cache = {};
   let activeBook = null;
 
-  /* --- highlight / font controls --- */
   if (!content.querySelector('.reader-controls')) {
     const controls = document.createElement('div');
     controls.className = 'reader-controls';
@@ -1001,101 +964,146 @@ function initReader() {
     content.insertBefore(controls, textEl);
   }
 
-  /* --- SEARCH via CORS proxy --- */
+  // Local, clearly labelled demonstration passages keep the reader usable if
+  // Gutendex or a Gutenberg text host rejects browser requests (CORS/offline).
+  const offlineBooks = [
+    { id: 'demo-alice', title: "Alice's Adventures in Wonderland", author: 'Lewis Carroll', terms: 'alice wonderland carroll', text: [
+      'Offline reading demonstration — the paragraphs below are original explanatory sample text, not a reproduction of the novel.',
+      'Alice follows an unexpected discovery into a world where familiar rules no longer apply. Each encounter asks her to reconsider what she thinks she knows.',
+      'A curious reader may notice how questions about identity and language shape the story. The changing surroundings invite both wonder and careful observation.',
+      'This sample paragraph is provided so that highlighting, bookmarks, font size and line spacing can be demonstrated without an internet connection.',
+      'Select a few words in this paragraph and choose a colour from the toolbar. The selection should remain highlighted after you reopen the sample.',
+      'Click the star beside a paragraph to bookmark it. Close and reopen the sample to check that the saved bookmark is restored.'
+    ]},
+    { id: 'demo-frankenstein', title: 'Frankenstein', author: 'Mary Shelley', terms: 'frankenstein shelley', text: [
+      'Offline reading demonstration — original sample commentary, not the text of Frankenstein.',
+      'A scientist becomes fascinated by the possibility of creating life, but soon confronts the consequences of his ambition.',
+      'The story raises questions about responsibility, isolation, and the duties that come with knowledge.',
+      'This locally bundled sample allows the reading controls and persistent bookmarks to work even when an external text server is unreachable.'
+    ]},
+    { id: 'demo-pride', title: 'Pride and Prejudice', author: 'Jane Austen', terms: 'pride prejudice austen', text: [
+      'Offline reading demonstration — original sample commentary, not the text of Pride and Prejudice.',
+      'First impressions influence how people understand each other, while social expectations complicate their choices.',
+      'The characters gradually discover that judgement can be distorted by pride, uncertainty and prejudice.',
+      'Try marking this paragraph and adjusting the reading controls. Your preferences are saved in this browser.'
+    ]},
+    { id: 'demo-sherlock', title: 'The Adventures of Sherlock Holmes', author: 'Arthur Conan Doyle', terms: 'sherlock holmes doyle', text: [
+      'Offline reading demonstration — original sample commentary, not the text of the stories.',
+      'A small observation may change the direction of an investigation. Holmes pays attention to details others overlook.',
+      'Reasoning from evidence is central to these detective stories, but a convincing explanation still needs to be tested.',
+      'Use the star to save a paragraph, or select a short passage to highlight it.'
+    ]},
+    { id: 'demo-moby', title: 'Moby-Dick', author: 'Herman Melville', terms: 'moby dick melville', text: [
+      'Offline reading demonstration — original sample commentary, not the text of Moby-Dick.',
+      'A voyage at sea becomes a study of obsession, human limits and the unpredictable natural world.',
+      'The crew shares a journey, yet each sailor understands its meaning differently.',
+      'This sample is available without a network connection for testing the reader.'
+    ]}
+  ];
+  const offlineMatches = query => offlineBooks.filter(b =>
+    (b.title + ' ' + b.author + ' ' + b.terms).toLowerCase().includes(query.toLowerCase()) ||
+    query.toLowerCase().split(/\s+/).some(w => w.length > 2 && b.terms.includes(w)));
+  const offlineAsBook = b => ({ id: b.id, title: b.title, authors: [{name: b.author}], formats: {}, demoText: b.text.join('\n\n') });
+  function showResults(list, message) {
+    cache = {};
+    list.forEach(b => { cache[String(b.id)] = b; });
+    status.textContent = message;
+    results.innerHTML = list.map(b => `
+      <article class="reader-result"><div><h3>${esc(b.title)}</h3>
+      <p>${esc((b.authors || [])[0]?.name || 'Unknown author')}${b.demoText ? ' · Offline demo' : ''}</p></div>
+      <button class="btn btn-outline" type="button" data-open-book="${esc(String(b.id))}">${b.demoText ? 'Read sample' : 'Open'}</button></article>`).join('');
+  }
+  function showOffline(query, reason) {
+    const matches = offlineMatches(query);
+    if (matches.length) {
+      showResults(matches.map(offlineAsBook), reason + ' Showing locally bundled reading demonstrations.');
+    } else {
+      cache = {};
+      results.innerHTML = '';
+      status.textContent = reason + ' No local sample matches this title. Try Alice, Frankenstein, Pride or Sherlock Holmes.';
+    }
+  }
+  let searchSequence = 0;
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const query = document.getElementById('reader-query').value.trim();
-    if (!query) return;
-
+    if (!query) { status.textContent = 'Enter a title or author to search.'; return; }
+    const sequence = ++searchSequence;
     status.textContent = 'Searching public catalogue…';
     status.classList.add('loading');
     results.innerHTML = '';
-
     try {
-      const target = `https://gutendex.com/books/?search=${encodeURIComponent(query)}`;
-      const res = await fetchWithProxy(target, 15000);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6500);
+      let res;
+      try { res = await fetch(`https://gutendex.com/books?search=${encodeURIComponent(query)}`, {signal: controller.signal}); }
+      finally { clearTimeout(timeout); }
+      if (!res.ok) throw new Error('Catalogue unavailable');
       const data = await res.json();
-
+      if (sequence !== searchSequence) return;
       const list = (data.results || []).slice(0, 8);
-      cache = {};
-      list.forEach(b => { cache[String(b.id)] = b; });
-
-      if (!list.length) {
-        status.textContent = 'No public-domain books found for that query.';
-        return;
-      }
-      status.textContent = `Found ${data.count} result(s).`;
-      results.innerHTML = list.map(b => {
-        const author = (b.authors[0] || {}).name || 'Unknown author';
-        const hasText = b.formats['text/plain; charset=utf-8'] || b.formats['text/plain'];
-        return `<article class="reader-result">
-          <div>
-            <h3>${esc(b.title)}</h3>
-            <p>${esc(author)}</p>
-          </div>
-          <div class="reader-result-actions">
-            ${hasText
-              ? `<button class="btn btn-primary" type="button" data-open-book="${b.id}">Read</button>`
-              : `<span class="muted small">No plain text</span>`}
-            <button class="btn btn-outline" type="button" data-google-preview="${b.id}">Google preview</button>
-          </div>
-        </article>`;
-      }).join('');
-    } catch (err) {
-      console.error('Reader search failed:', err);
-      status.textContent = 'Could not reach the public catalogue. Please try again in a moment.';
-    } finally {
-      status.classList.remove('loading');
-    }
+      if (list.length) showResults(list, `Found ${data.count || list.length} result(s).`);
+      else showOffline(query, 'No matching public-domain edition was found.');
+    } catch (error) {
+      if (sequence === searchSequence) showOffline(query, 'Public catalogue unavailable.');
+    } finally { if (sequence === searchSequence) status.classList.remove('loading'); }
   });
 
-  /* --- result click handler --- */
   results.addEventListener('click', e => {
-    const openBtn = e.target.closest('[data-open-book]');
-    if (openBtn) {
-      openBook(cache[openBtn.dataset.openBook]);
-      return;
-    }
-    const previewBtn = e.target.closest('[data-google-preview]');
-    if (previewBtn) {
-      const b = cache[previewBtn.dataset.googlePreview];
-      if (b) openGooglePreview(b);
-    }
+    const btn = e.target.closest('[data-open-book]');
+    if (btn) openBook(cache[btn.dataset.openBook]);
   });
 
-  /* --- fetch full text via CORS proxy --- */
   async function openBook(book) {
     if (!book) return;
-    const plain = book.formats['text/plain; charset=utf-8'] || book.formats['text/plain'];
-    if (!plain) { showToast('No plain-text edition for this book.'); return; }
-
-    status.textContent = 'Downloading text… (this may take a few seconds)';
-    status.classList.add('loading');
-
-    try {
-      const res = await fetchWithProxy(plain, 25000);
-      let text = await res.text();
-      if (text.length > 300000) {
-        text = text.slice(0, 300000) + '\n\n[Text shortened for this demo.]';
-      }
-
-      activeBook = book;
-      if (titleEl) titleEl.textContent = book.title;
-      if (authorEl) authorEl.textContent = (book.authors || []).map(a => a.name).join(', ') || 'Unknown author';
-      renderText(text, book);
-      content.hidden = false;
-      content.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      status.textContent = '';
-    } catch (err) {
-      console.error('Text download failed:', err);
-      status.innerHTML = `Could not download automatically. 
-        <a href="${esc(plain)}" target="_blank" rel="noopener">Open the text edition ↗</a>`;
-    } finally {
-      status.classList.remove('loading');
+    const plain = book.formats?.['text/plain; charset=utf-8'] || book.formats?.['text/plain'] ||
+      Object.entries(book.formats || {}).find(([k]) => k.startsWith('text/plain'))?.[1];
+    if (book.demoText) { displayBook(book.demoText, book); status.textContent = 'Offline demonstration sample (not the original book text).'; return; }
+    if (!plain) {
+      const match = offlineMatches(book.title)[0];
+      if (match) { const demo = offlineAsBook(match); displayBook(demo.demoText, demo); status.textContent = 'Plain-text edition unavailable. Showing a labelled offline demonstration.'; }
+      else status.textContent = 'No plain-text edition available for browser reading. Try another title.';
+      return;
     }
+    status.textContent = 'Downloading text…';
+    status.classList.add('loading');
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      let res;
+      try { res = await fetch(plain, {signal: controller.signal}); }
+      finally { clearTimeout(timeout); }
+      if (!res.ok) throw new Error('Text unavailable');
+      let text = await res.text();
+      if (text.length > 300000) text = text.slice(0, 300000) + '\n\nThe text has been shortened for this demo.';
+      displayBook(text, book);
+      status.textContent = '';
+    } catch (error) {
+      const match = offlineMatches(book.title)[0];
+      if (match) {
+        const demo = offlineAsBook(match);
+        displayBook(demo.demoText, demo);
+        status.textContent = 'External text blocked or unavailable. Showing a labelled offline demonstration.';
+      } else {
+        status.textContent = 'Automatic download unavailable. Open the original text using the link below.';
+        const link = document.createElement('a');
+        link.href = plain;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = ' Open original text ↗';
+        status.appendChild(link);
+      }
+    } finally { status.classList.remove('loading'); }
+  }
+  function displayBook(text, book) {
+    activeBook = book;
+    if (titleEl) titleEl.textContent = book.title;
+    if (authorEl) authorEl.textContent = (book.authors || []).map(a => a.name).join(', ') || 'Unknown author';
+    renderText(text, book);
+    content.hidden = false;
+    content.scrollIntoView({behavior: 'smooth', block: 'start'});
   }
 
-  /* --- render text with highlights / bookmarks --- */
   function renderText(text, book) {
     const savedHtml = localStorage.getItem('dbc-reader-html-' + book.id);
     if (savedHtml) {
@@ -1117,7 +1125,6 @@ function initReader() {
     applyReaderPrefs();
   }
 
-  /* --- highlighting --- */
   $$('.hl-btn').forEach(btn => btn.addEventListener('click', () => {
     $$('.hl-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -1157,7 +1164,6 @@ function initReader() {
     }
   });
 
-  /* --- bookmarks --- */
   textEl.addEventListener('click', e => {
     const btn = e.target.closest('[data-bookmark]');
     if (!btn || !activeBook) return;
@@ -1178,7 +1184,6 @@ function initReader() {
     try { localStorage.setItem('dbc-reader-html-' + activeBook.id, textEl.innerHTML); } catch (e) {}
   }
 
-  /* --- font / line controls --- */
   $$('[data-font]').forEach(btn => btn.addEventListener('click', () => {
     let size = parseInt(localStorage.getItem('dbc-reader-font') || '17', 10);
     size = Math.min(26, Math.max(13, size + Number(btn.dataset.font)));
@@ -1197,7 +1202,6 @@ function initReader() {
     textEl.style.lineHeight = (localStorage.getItem('dbc-reader-lh') || '1.85');
   }
 
-  /* --- clear highlights --- */
   const clearHl = document.getElementById('reader-clear-hl');
   if (clearHl) clearHl.addEventListener('click', () => {
     if (!activeBook) { showToast('Open a book first.'); return; }
@@ -1206,96 +1210,12 @@ function initReader() {
     showToast('Highlights cleared');
   });
 
-  /* --- close reader --- */
   const closeBtn = document.getElementById('reader-clear');
   if (closeBtn) closeBtn.addEventListener('click', () => {
     content.hidden = true;
     textEl.innerHTML = '';
     activeBook = null;
   });
-
-  /* --- GOOGLE BOOKS EMBEDDED VIEWER --- */
-  let googleViewer = null;
-
-  function ensureGoogleViewerWrap() {
-    let wrap = document.getElementById('google-books-viewer-wrap');
-    if (!wrap) {
-      wrap = document.createElement('div');
-      wrap.id = 'google-books-viewer-wrap';
-      wrap.style.cssText = 'display:none;margin-top:2rem;';
-      wrap.innerHTML = `
-        <div class="reader-toolbar">
-          <div>
-            <span class="eyebrow">GOOGLE BOOKS PREVIEW</span>
-            <h2 id="google-viewer-title"></h2>
-          </div>
-          <button id="google-viewer-close" class="btn btn-outline" type="button">Close preview</button>
-        </div>
-        <div id="viewerCanvas" style="width:100%;height:600px;"></div>`;
-      const main = document.querySelector('main.site-main') || document.body;
-      main.appendChild(wrap);
-      document.getElementById('google-viewer-close').addEventListener('click', () => {
-        wrap.style.display = 'none';
-        document.getElementById('viewerCanvas').innerHTML = '';
-      });
-    }
-    return wrap;
-  }
-
-  function getGoogleViewer() {
-    return new Promise((resolve, reject) => {
-      if (googleViewer) return resolve(googleViewer);
-      if (!window.google || !google.books) {
-        return reject(new Error('Google Books API not loaded'));
-      }
-      google.books.load();
-      google.books.setOnLoadCallback(() => {
-        const canvas = document.getElementById('viewerCanvas');
-        if (!canvas) return reject(new Error('Viewer canvas missing'));
-        googleViewer = new google.books.DefaultViewer(canvas);
-        resolve(googleViewer);
-      });
-    });
-  }
-
-  async function openGooglePreview(book) {
-    const wrap = ensureGoogleViewerWrap();
-    const titleElG = document.getElementById('google-viewer-title');
-    const canvas = document.getElementById('viewerCanvas');
-
-    wrap.style.display = 'block';
-    titleElG.textContent = 'Looking up on Google Books…';
-    canvas.innerHTML = '<p style="padding:2rem;color:var(--text-muted)">Loading…</p>';
-    wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    try {
-      const authorName = (book.authors && book.authors[0] && book.authors[0].name) || '';
-      const q = `intitle:${encodeURIComponent(book.title)}+inauthor:${encodeURIComponent(authorName)}`;
-      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`);
-      const data = await res.json();
-      const item = data.items && data.items[0];
-      if (!item) {
-        titleElG.textContent = 'Not found on Google Books';
-        canvas.innerHTML = '<p style="padding:2rem">This title is not available in Google Books.</p>';
-        return;
-      }
-      titleElG.textContent = item.volumeInfo.title || book.title;
-      canvas.innerHTML = ''; // clear placeholder before viewer takes over
-
-      const viewer = await getGoogleViewer();
-      viewer.load(item.id,
-        () => { /* success */ },
-        () => {
-          titleElG.textContent = 'Preview not available';
-          canvas.innerHTML = '<p style="padding:2rem">Google Books does not provide a preview for this title. Use the Read button for the full public-domain text instead.</p>';
-        }
-      );
-    } catch (err) {
-      console.error('Google preview failed:', err);
-      titleElG.textContent = 'Preview failed';
-      canvas.innerHTML = '<p style="padding:2rem">Could not load Google Books preview. Use the Read button instead.</p>';
-    }
-  }
 }
 
 /* -------------------- ABOUT -------------------- */

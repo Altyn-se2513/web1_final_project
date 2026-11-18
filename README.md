@@ -25,3 +25,7 @@ index.html catalog.html book-details.html about.html pricing.html
 contact.html account.html profile.html reader.html
 css/style.css  js/script.js  images/
 ```
+
+
+## Reader fallback (November 2026)
+Gutendex search uses a timeout. When unavailable, the reader offers clearly labelled offline demonstration passages for a limited set of public-domain titles. These passages are original summaries for testing, NOT the original books. Full editions depend on the external text host and browser CORS rules. Test the live site after GitHub Pages deployment.

@@ -1,2 +1,1 @@
-Book covers are generated with CSS gradients and loaded from Open Library by ISBN (see js/script.js).
-Place any local images for the project in this folder.
+SVG icons and favicon are stored here. Book cover art in the local catalogue is rendered using CSS gradients; live Google Books results may include externally hosted thumbnails.
